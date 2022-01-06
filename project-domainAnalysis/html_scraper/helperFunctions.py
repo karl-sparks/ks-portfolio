@@ -16,9 +16,6 @@ street_address_regexp = '(?<=data-testid="address-line1">).+(?=<!--)'
 suburb_address_regexp = '(?<=<span>)[\w\s]+(?=</span>)'
 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36'}
 
-scrapped_data_folder = 'scrapped_data' #local folder to store raw data
-save_folder = 'clean_data' #s3 bucket to store cleaned data
-
 def scrap_domain_page(soup):
   """
   Scraps a domain.com.au webpage.
@@ -107,7 +104,7 @@ def scrap_domain_page(soup):
 
   return df
 
-def scrap_domain_url(url, delay = 1, save_url = 'scrapped_data'):
+def scrap_domain_url(url, delay = 1, save_url = 'scrapped_data', scrapped_data_folder = r'C:\dev\data\scrapped_data'):
   """
   Scrap a domain webpage from URL. Will check for next page of results and
   continue scrapping until there are no remaining pages.
@@ -140,7 +137,7 @@ def scrap_domain_url(url, delay = 1, save_url = 'scrapped_data'):
     scrap_domain_url(next_url)
 
 
-def read_scrapped_data():
+def read_scrapped_data(scrapped_data_folder = r'C:\dev\data\scrapped_data'):
   dfs = []
   for file in os.listdir(scrapped_data_folder):
     df = pd.read_feather(os.path.join(scrapped_data_folder, file))
@@ -148,7 +145,7 @@ def read_scrapped_data():
 
   return pd.concat(dfs, ignore_index=True)
 
-def clean_write_data(raw_data, numeric_columns = ['beds', 'baths', 'cars']):
+def clean_write_data(raw_data, numeric_columns = ['beds', 'baths', 'cars'], save_folder = r'C:\dev\data'):
   """
   Clean and write raw_data.
   """
@@ -156,7 +153,7 @@ def clean_write_data(raw_data, numeric_columns = ['beds', 'baths', 'cars']):
 
   for column in numeric_columns:
     raw_data.loc[raw_data[column] == "−", column] = '0'
-    raw_data.loc[raw_data[column] == "NA", column] = '0'
+    raw_data.loc[raw_data[column] == "NA", column] = np.nan
     raw_data[column] = pd.to_numeric(raw_data[column])
 
   raw_data['has_price'] = raw_data['listed_price'] != 'NA'
@@ -167,7 +164,7 @@ def clean_write_data(raw_data, numeric_columns = ['beds', 'baths', 'cars']):
 
   save_file_name = os.path.join(save_folder, 'cleaned_data.feather')
   print('Saved cleaned data to ' + save_file_name)
-  display(final_data)
+  print(final_data.head(5))
   final_data.to_feather(save_file_name)
 
 def convert_price_to_dollars(price):
