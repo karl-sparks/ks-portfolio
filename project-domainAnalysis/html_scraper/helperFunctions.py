@@ -189,3 +189,5 @@ def remove_non_numeric(price):
     return re.sub('[^\d]', '', first_match.group())
   else:
     return 'NA'
+
+    

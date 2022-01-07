@@ -1,6 +1,8 @@
 #This contains functions to access domain's API
+import re
 import requests
 import pandas as pd
+import numpy as np
 import time
 import os
 
@@ -123,5 +125,42 @@ def query_postcode(postcode, listingType = 'Sale'):
 
         write_output(extract_listings(initial_response.json()), f'postcode_{postcode}_pg_{i}')
 
-    
 
+def concat_raw_data(rawpath):
+    dfs = []
+    for file in os.listdir(rawpath):
+        df = pd.read_feather(os.path.join(rawpath, file))
+        df['query'] = file
+        dfs.append(df)
+
+    return pd.concat(dfs, ignore_index=True)
+
+def convert_price_to_dollars(price):
+    if not re.search('\$', price):
+        return np.nan
+
+    
+    if re.search('[\d\s][kK](?=[\s,\.]|$)', price):
+        clean_price = remove_non_numeric(price)
+        return_price = pd.to_numeric(clean_price, errors='coerce') * 1000
+    elif re.search('[\d\s][mM](?![^iI\s,\.]|IN|in|In|iN)', price):
+        clean_price = remove_non_numeric(price)
+        return_price = pd.to_numeric(clean_price, errors='coerce') * 1000000
+    else:
+        clean_price = remove_non_numeric(price)
+        return_price = pd.to_numeric(clean_price, errors='coerce')
+
+    return return_price
+
+def remove_non_numeric(price):
+    first_match = re.search('\$[\d\.,\s]+', price)
+    if first_match:
+        return re.sub('[\$,\s]', '', first_match.group())
+    else:
+        return np.nan
+
+
+def create_price_column(act_price, infer_price):
+    act_price.fillna(infer_price)
+
+    
