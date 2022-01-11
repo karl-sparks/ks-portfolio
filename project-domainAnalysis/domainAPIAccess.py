@@ -6,7 +6,7 @@ import numpy as np
 import time
 import os
 
-def query_domain_api(postcode, pageNumber, listingType):
+def send_query(state, postcode, pageNumber, listingType, listedSince):
 
 
     url = 'https://api.domain.com.au/v1/listings/residential/_search'
@@ -26,14 +26,15 @@ def query_domain_api(postcode, pageNumber, listingType):
         "maxBathrooms":"",
         "locations":[
             {
-                "state":"",
+                "state": state,
                 "region":"",
                 "area":"",
                 "suburb":"",
                 "postCode":postcode,
                 "includeSurroundingSuburbs":False
             }
-        ]
+        ],
+        "listedSince": listedSince
     }
 
     return requests.post(url=url, json=post_request, headers=headers)
@@ -94,8 +95,8 @@ def write_output(json_data, id):
         os.mkdir(output_folder)
         df.to_feather(os.path.join(output_folder, id + '_raw_data.feather'))
 
-def query_postcode(postcode, listingType = 'Sale'):
-    initial_response = query_domain_api(postcode, 1, listingType)
+def query_API(state = "", postcode = "", listingType = "Sale", listedSince = ""):
+    initial_response = send_query(state, postcode, 1, listingType, listedSince)
 
     remaining_quota = check_response_status(initial_response)
 
@@ -103,10 +104,10 @@ def query_postcode(postcode, listingType = 'Sale'):
     number_of_pages = total_listings // 100 + (total_listings % 100 > 1)
 
     if total_listings == 0:
-        print(f'No listings for postcode: {postcode}, {remaining_quota} remaining quota today.')
+        print(f'No listings for {state} - {postcode} - {listingType} - {listedSince} : {remaining_quota} remaining quota today.')
         return None
     else:
-        print(f'Querying postcode: {postcode}, listingType: {listingType}, {remaining_quota} remaining quota today.')
+        print(f'Querying {state} - {postcode} - {listingType} - {listedSince}: {remaining_quota} remaining quota today.')
 
     if number_of_pages > 10:
         print('Warning! more than 10 pages of results.')
@@ -115,15 +116,15 @@ def query_postcode(postcode, listingType = 'Sale'):
 
     print(f'Total number of listings: {total_listings}, number of pages: {number_of_pages}')
 
-    write_output(extract_listings(initial_response.json()), f'postcode_{postcode}_pg_1')
+    write_output(extract_listings(initial_response.json()), f'{state}_{postcode}_{listingType}_{pd.Timestamp.today().strftime("%Y_%m_%d")}_pg_1')
 
     for i in range(2, number_of_pages + 1):
-        loop_response = query_domain_api(postcode, i, listingType)
+        loop_response = send_query(state, postcode, i, listingType, listedSince)
 
         remaining_quota = check_response_status(loop_response)
         print(f'Querying page {i} of {number_of_pages}, {remaining_quota} remaining quota today.')
 
-        write_output(extract_listings(initial_response.json()), f'postcode_{postcode}_pg_{i}')
+        write_output(extract_listings(initial_response.json()), f'{state}_{postcode}_{listingType}_{pd.Timestamp.today().strftime("%Y_%m_%d")}_pg_{i}')
 
 
 def concat_raw_data(rawpath):
