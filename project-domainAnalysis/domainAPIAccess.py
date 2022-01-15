@@ -6,6 +6,17 @@ import numpy as np
 import time
 import os
 
+#Data cleaning configurations. 
+cleaning_config = {
+    'fillnavalues': { # Columns and values to replace NAs
+    'propertyDetails.bathrooms': 0,
+    'propertyDetails.bedrooms': 0,
+    'propertyDetails.carspaces': 0},
+    'min_price': 25000, # Minimum and maximum price values to allow. If outside range will change price to NaN.
+    'max_price': 10000000 # This check is to remove some extreme outliners for data quality. Largely due to odd listings.
+    }
+
+
 def send_query(state, postcode, pageNumber, listingType, listedSince):
 
 
@@ -76,18 +87,17 @@ def quota_wait(headers):
 def check_response_status(response):
     if response.status_code == 429:
         seconds_to_sleep = quota_wait(response.headers)
-        print(f'Reached Quota Maximum. Sleeping for {seconds_to_sleep/60/60:.2f} hours')
-        time.sleep(seconds_to_sleep)
+        raise ConnectionRefusedError(f'Reached Quota Maximum. Required wait period is {seconds_to_sleep/60/60:.2f} hours')
     elif response.status_code != 200:
         raise(ConnectionError(f'Status Code is {response.status_code}'))
     else:
         return response.headers["X-Quota-PerDay-Remaining"]
 
-def write_output(json_data, id):
+def write_output(json_data, id, wd_path):
     df = pd.json_normalize(json_data)
 
     today_str = str(pd.Timestamp.today().strftime('%Y_%m_%d_raw_data'))
-    output_folder = os.path.join(r'C:\dev\data', today_str)
+    output_folder = os.path.join(wd_path, today_str)
 
     if os.path.exists(output_folder):
         df.to_feather(os.path.join(output_folder, id + '_raw_data.feather'))
@@ -95,7 +105,7 @@ def write_output(json_data, id):
         os.mkdir(output_folder)
         df.to_feather(os.path.join(output_folder, id + '_raw_data.feather'))
 
-def query_API(state = "", postcode = "", listingType = "Sale", listedSince = ""):
+def query_API(wd_path, state = "", postcode = "", listingType = "Sale", listedSince = ""):
     initial_response = send_query(state, postcode, 1, listingType, listedSince)
 
     remaining_quota = check_response_status(initial_response)
@@ -116,7 +126,7 @@ def query_API(state = "", postcode = "", listingType = "Sale", listedSince = "")
 
     print(f'Total number of listings: {total_listings}, number of pages: {number_of_pages}')
 
-    write_output(extract_listings(initial_response.json()), f'{state}_{postcode}_{listingType}_{pd.Timestamp.today().strftime("%Y_%m_%d")}_pg_1')
+    write_output(extract_listings(initial_response.json()), f'{state}_{postcode}_{listingType}_{pd.Timestamp.today().strftime("%Y_%m_%d")}_pg_1', wd_path)
 
     for i in range(2, number_of_pages + 1):
         loop_response = send_query(state, postcode, i, listingType, listedSince)
@@ -124,7 +134,7 @@ def query_API(state = "", postcode = "", listingType = "Sale", listedSince = "")
         remaining_quota = check_response_status(loop_response)
         print(f'Querying page {i} of {number_of_pages}, {remaining_quota} remaining quota today.')
 
-        write_output(extract_listings(initial_response.json()), f'{state}_{postcode}_{listingType}_{pd.Timestamp.today().strftime("%Y_%m_%d")}_pg_{i}')
+        write_output(extract_listings(initial_response.json()), f'{state}_{postcode}_{listingType}_{pd.Timestamp.today().strftime("%Y_%m_%d")}_pg_{i}', wd_path)
 
 
 def concat_raw_data(rawpath):
@@ -137,6 +147,10 @@ def concat_raw_data(rawpath):
     return pd.concat(dfs, ignore_index=True)
 
 def convert_price_to_dollars(price):
+    if type(price) != str:
+        print('Expected str, instead got ' + str(type(price)) + ' - ' + str(price))
+        return np.nan
+
     if not re.search('\$', price):
         return np.nan
 
@@ -164,4 +178,24 @@ def remove_non_numeric(price):
 def create_price_column(act_price, infer_price):
     act_price.fillna(infer_price)
 
-    
+def load_all_raw_data(wd_path):
+    folders_raw_data = [os.path.join(wd_path, folder) for folder in os.listdir(wd_path)]
+
+    return [concat_raw_data(folder) for folder in folders_raw_data]
+
+def clean_data(wd_path: str) -> pd.DataFrame:
+    df = pd.concat(load_all_raw_data(wd_path), ignore_index=True).drop_duplicates('id')
+
+    df['converted_price'] = df['priceDetails.displayPrice'].apply(convert_price_to_dollars)
+
+    df['price'] = df['priceDetails.price'].fillna(df['converted_price'])
+
+    df.fillna(cleaning_config['fillnavalues'], inplace=True)
+
+    df.loc[(df['price'] < cleaning_config['min_price']) | (df['price'] > cleaning_config['max_price']), 'price'] = np.nan
+
+    return df.reset_index(drop=True)
+
+def update_state(wd_path, state = 'NSW'):
+    last_week = pd.Timestamp.today() - pd.Timedelta(2, 'days')
+    query_API(wd_path, state=state, listedSince=last_week.isoformat())

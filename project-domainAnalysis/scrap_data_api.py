@@ -1,27 +1,40 @@
-#Script used to scrap data from the Domain API
+#Script used to scrap data from the Domain API each day
 
 import domainAPIAccess as domain
 import pandas as pd
+import os
 
-def inital_query():
-    postcodes = pd.read_csv(r'C:\dev\data\NSW_post_codes.csv', dtype={'post_code':'str', '0': 'int'})['post_code']
+wd_path = r'C:\dev\data\daily_scrap'
+main_data_path = r'C:\dev\data\main_data\domain_data_cleaned.feather'
+postcode_path = r'C:\dev\data\checked_postcodes.feather'
 
-    for p in postcodes:
-        domain.query_postcode(p)
-
-
-def update_state(state = 'NSW'):
-    last_week = pd.Timestamp.today() - pd.Timedelta(2, 'days')
-    domain.query_API(state, listedSince=last_week.isoformat())
-    
-
+# First check each state for newly listed properties 
 states = ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'TAS', 'ACT', 'NT']
 
 for state in states:
-    update_state(state) 
+    try:
+        domain.update_state(wd_path, state)
+    except ConnectionRefusedError as err:
+        print(f'Unable to query {state} for new listings')
+        print(err)
+        break
 
-#update minimum each time it runs out of requests each day.
-VIC_postcodes = [f'{i:04}' for i in range(3322, 4000)]
+# Next check all postcodes one at a time.
+pc_df = pd.read_feather(postcode_path)
+unchecked_postcodes = pc_df[~pc_df['Checked']].postcode
+print(f'Checking {len(pc_df) - pc_df["Checked"].sum()} postcodes: starting with postcode {unchecked_postcodes[0]}')
+for pc in unchecked_postcodes:
+    try:
+        domain.query_API(wd_path, postcode=pc)
+        pc_df.loc[pc_df['postcode'] == pc, 'Checked'] = True # Since this is only reached if the pc is queried successfully, by default its False.
+    except ConnectionRefusedError as err:
+        print(f'Ran out of daily queries, {len(pc_df) - pc_df["Checked"].sum()} remaining postcodes for checking.')
+        print(err)
+        break
+    finally: 
+        pc_df.to_feather(postcode_path)
 
-for pc in VIC_postcodes:
-    domain.query_API(postcode=pc)
+print('Cleaning and saving raw data. This part usually takes > 20 seconds.')
+df = domain.clean_data(wd_path)
+df.to_feather(main_data_path)
+print(f'{len(df):,} properties succesfully saved to: {main_data_path}')
