@@ -22,7 +22,7 @@ for state in states:
 # Next check all postcodes one at a time.
 pc_df = pd.read_feather(postcode_path)
 unchecked_postcodes = pc_df[~pc_df['Checked']].postcode
-print(f'Checking {len(pc_df) - pc_df["Checked"].sum()} postcodes: starting with postcode {unchecked_postcodes[0]}')
+print(f'Checking {len(pc_df) - pc_df["Checked"].sum()} postcodes: starting with postcode {unchecked_postcodes.iloc[0]}')
 for pc in unchecked_postcodes:
     try:
         domain.query_API(wd_path, postcode=pc)
