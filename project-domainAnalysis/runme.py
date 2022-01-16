@@ -26,7 +26,7 @@ print(f'Checking {len(pc_df) - pc_df["Checked"].sum()} postcodes: starting with 
 for pc in unchecked_postcodes:
     try:
         domain.query_API(wd_path, postcode=pc)
-        pc_df.loc[pc_df['postcode'] == pc, 'Checked'] = True # Since this is only reached if the pc is queried successfully, by default its False.
+        pc_df.loc[pc_df['postcode'] == pc, 'Checked'] = True # Since this is only reached if the pc is queried successfully, it remains False when the daily limit is reached.
     except ConnectionRefusedError as err:
         print(f'Ran out of daily queries, {len(pc_df) - pc_df["Checked"].sum()} remaining postcodes for checking.')
         print(err)

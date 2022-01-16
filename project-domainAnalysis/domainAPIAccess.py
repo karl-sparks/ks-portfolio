@@ -189,6 +189,8 @@ def clean_data(wd_path: str) -> pd.DataFrame:
     df['converted_price'] = df['priceDetails.displayPrice'].apply(convert_price_to_dollars)
 
     df['price'] = df['priceDetails.price'].fillna(df['converted_price'])
+    
+    df['dateListed'] = pd.to_datetime(df['dateListed'])
 
     df.fillna(cleaning_config['fillnavalues'], inplace=True)
 
