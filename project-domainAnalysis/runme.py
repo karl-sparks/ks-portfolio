@@ -20,7 +20,14 @@ for state in states:
         break
 
 # Next check all postcodes one at a time.
-pc_df = pd.read_feather(postcode_path)
+if not os.path.exists(postcode_path): # If postcode file does not exist, create it
+    pc_df = pd.DataFrame({
+        'postcode': [i for i in range(10000)],
+        'Checked': False
+    })
+else:
+    pc_df = pd.read_feather(postcode_path)
+
 unchecked_postcodes = pc_df[~pc_df['Checked']].postcode
 print(f'Checking {len(pc_df) - pc_df["Checked"].sum()} postcodes: starting with postcode {unchecked_postcodes.iloc[0]}')
 for pc in unchecked_postcodes:
