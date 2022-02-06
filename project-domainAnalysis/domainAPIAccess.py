@@ -85,7 +85,7 @@ def quota_wait(headers):
         raise KeyError(f'Can not find Retry-After key in header: {headers.keys()}')
 
 def check_response_status(response):
-    if response.status_code == 429:
+    if (response.status_code == 429) & ('Retry-After' in response.headers):
         seconds_to_sleep = quota_wait(response.headers)
         raise ConnectionRefusedError(f'Reached Quota Maximum. Required wait period is {seconds_to_sleep/60/60:.2f} hours')
     elif response.status_code != 200:
