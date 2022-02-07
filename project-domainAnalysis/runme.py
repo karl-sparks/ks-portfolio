@@ -40,8 +40,9 @@ for pc in unchecked_postcodes:
         break
     finally: 
         pc_df.to_feather(postcode_path)
-        print('Cleaning and saving raw data. This part usually takes > 20 seconds.')
+
+print('Cleaning and saving raw data. This part usually takes > 20 seconds.')
         
-        df = domain.clean_data(wd_path)
-        df.to_feather(main_data_path)
-        print(f'{len(df):,} properties succesfully saved to: {main_data_path}')
+df = domain.clean_data(wd_path)
+df.to_feather(main_data_path)
+print(f'{len(df):,} properties succesfully saved to: {main_data_path}')
