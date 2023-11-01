@@ -20,6 +20,26 @@ class CONFIG:
     N_ITER = 200
 
 
+def clean_log_data(log_data):
+    def num_unique_text(x):
+        return len(set(x))
+
+    agg_dict = {
+        "event_id": "count",
+        "action_time": ["mean", "sum"],
+        "down_event": num_unique_text,
+        "up_event": num_unique_text,
+        "text_change": num_unique_text,
+        "word_count": ["mean", "sum"],
+    }
+
+    grouped_df = log_data.groupby("id").agg(agg_dict)
+
+    grouped_df.columns = ["_".join(col).strip() for col in grouped_df.columns.values]
+
+    return grouped_df
+
+
 class objective:
     def __init__(self, data, target):
         self.data = data
@@ -84,9 +104,8 @@ class objective:
         bst = xgb.XGBRegressor(**param, random_state=CONFIG.RANDOM_SEED)
         bst.fit(train_x, train_y)
         preds = bst.predict(valid_x)
-        pred_labels = preds
 
-        root_mean_squared_error = np.sqrt(mean_squared_error(valid_y, pred_labels))
+        root_mean_squared_error = np.sqrt(mean_squared_error(valid_y, preds))
         return root_mean_squared_error
 
 
@@ -95,21 +114,7 @@ if __name__ == "__main__":
 
     raw_train_scores = pd.read_csv(f"{CONFIG.DATA_DIR_PATH}/train_scores.csv")
 
-    raw_train_scores["score"] = ((raw_train_scores["score"] * 2) - 1).astype(int)
-
-    def num_unique_text(x):
-        return len(set(x))
-
-    agg_dict = {
-        "event_id": "count",
-        "action_time": ["mean", "sum"],
-        "down_event": num_unique_text,
-        "up_event": num_unique_text,
-        "text_change": num_unique_text,
-        "word_count": ["mean", "sum"],
-    }
-
-    grouped_df = raw_train_logs.groupby("id").agg(agg_dict)
+    grouped_df = clean_log_data(raw_train_logs)
 
     grouped_df.columns = ["_".join(col).strip() for col in grouped_df.columns.values]
 
