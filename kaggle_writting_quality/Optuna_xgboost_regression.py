@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class CONFIG:
-    DATA_DIR_PATH = "D:\dev\linking-writing-processes-to-writing-quality"
+    DATA_DIR_PATH = r"D:\dev\linking-writing-processes-to-writing-quality"
     COLS_TO_DROP = ["id", "score"]
     RANDOM_SEED = 2023
     TEST_SIZE = 0.2
@@ -24,13 +24,42 @@ def clean_log_data(log_data):
     def num_unique_text(x):
         return len(set(x))
 
+    def share_of_input(x):
+        return np.sum(x == "Input") / len(x)
+
+    def share_of_deletions(x):
+        return np.sum(x == "Remove/Cut") / len(x)
+
+    def first_quartile(series):
+        return series.quantile(0.25)
+
+    def third_quartile(series):
+        return series.quantile(0.75)
+
     agg_dict = {
         "event_id": "count",
-        "action_time": ["mean", "sum"],
-        "down_event": num_unique_text,
-        "up_event": num_unique_text,
+        "activity": [share_of_input, share_of_deletions],
+        "action_time": [
+            #       "mean",
+            #       "sum",
+            #       "std",
+            "min",
+            "max",
+            #       first_quartile,
+            #       third_quartile,
+        ],
+        #     "down_event": num_unique_text,
+        #      "up_event": num_unique_text,
         "text_change": num_unique_text,
-        "word_count": ["mean", "sum"],
+        "word_count": [
+            #       "mean",
+            "sum",
+            #       "std",
+            "min",
+            "max",
+            #       first_quartile,
+            third_quartile,
+        ],
     }
 
     grouped_df = log_data.groupby("id").agg(agg_dict)
@@ -133,6 +162,7 @@ if __name__ == "__main__":
     )
 
     print("Number of finished trials: ", len(study.trials))
+    print("Features: ", training_data.columns.tolist())
     print("Best trial:")
     trial = study.best_trial
 
