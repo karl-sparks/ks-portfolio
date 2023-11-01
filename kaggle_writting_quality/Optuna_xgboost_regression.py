@@ -2,10 +2,8 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
-from sklearn.pipeline import Pipeline
-from category_encoders.target_encoder import TargetEncoder
 import xgboost as xgb
-from xgboost import XGBClassifier
+from xgboost import XGBRegressor
 import optuna
 import logging
 
@@ -17,13 +15,9 @@ class CONFIG:
     COLS_TO_DROP = ["id", "score"]
     RANDOM_SEED = 2023
     TEST_SIZE = 0.2
-    ESTIMATORS = [
-        #      ('encoder', TargetEncoder()),
-        ("clf", XGBClassifier(random_state=RANDOM_SEED))
-    ]
+    ESTIMATORS = [("clf", XGBRegressor(random_state=RANDOM_SEED))]
     CV = 4
-    N_ITER = 1000
-    SCORING = "neg_root_mean_squared_error"
+    N_ITER = 200
 
 
 class objective:
@@ -129,7 +123,7 @@ if __name__ == "__main__":
         objective(
             training_data.drop(columns=CONFIG.COLS_TO_DROP), training_data["score"]
         ),
-        n_trials=500,
+        n_trials=CONFIG.N_ITER,
         timeout=600,
     )
 
