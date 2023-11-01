@@ -85,13 +85,14 @@ def quota_wait(headers):
         raise KeyError(f'Can not find Retry-After key in header: {headers.keys()}')
 
 def check_response_status(response):
-    if (response.status_code == 429) & ('Retry-After' in response.headers):
+    if 'X-Quota-PerDay-Remaining' in response.headers:
+        return response.headers["X-Quota-PerDay-Remaining"]
+    elif 'Retry-After' in response.headers: 
         seconds_to_sleep = quota_wait(response.headers)
         raise ConnectionRefusedError(f'Reached Quota Maximum. Required wait period is {seconds_to_sleep/60/60:.2f} hours')
-    elif response.status_code != 200:
-        raise(ConnectionError(f'Status Code is {response.status_code}'))
     else:
-        return response.headers["X-Quota-PerDay-Remaining"]
+        raise(ConnectionError(f'Status Code is {response.status_code} \n Headers contain: \n {response.headers}')) 
+
 
 def write_output(json_data, id, wd_path):
     df = pd.json_normalize(json_data)
@@ -110,7 +111,11 @@ def query_API(wd_path, state = "", postcode = "", listingType = "Sale", listedSi
 
     remaining_quota = check_response_status(initial_response)
 
-    total_listings = int(initial_response.headers['X-Total-Count'])
+    if 'X-Total-Count' in initial_response.headers:
+        total_listings = int(initial_response.headers['X-Total-Count'])
+    else:
+        total_listings = 0
+    
     number_of_pages = total_listings // 100 + (total_listings % 100 > 1)
 
     if total_listings == 0:
