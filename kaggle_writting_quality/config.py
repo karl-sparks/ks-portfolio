@@ -1,0 +1,7 @@
+DATA_DIR_PATH = r"D:\dev\kaggle_data"
+COLS_TO_DROP = ["id", "score"]
+RANDOM_SEED = 2023
+TEST_SIZE = 0.2
+CV = 4
+N_ITER = 5000
+PAUSE_THRESHOLD = 2000
