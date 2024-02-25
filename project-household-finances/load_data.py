@@ -10,9 +10,6 @@ import config as cfg
 import google_drive as gd
 
 
-pl.Config(tbl_cols=18)
-
-
 def check_file_update(file_path):
     if not os.path.exists(file_path):
         return False
