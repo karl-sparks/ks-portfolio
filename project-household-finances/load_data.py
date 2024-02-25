@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 import os
 
 import config as cfg
+import google_drive as gd
 
 
 pl.Config(tbl_cols=18)
@@ -101,7 +102,7 @@ def load_data_from_up_bank(limit=None):
             )
 
         print(
-            f"Loaded {transaction_df.select(pl.len()).item()} transactions in {account_df.select(pl.len()).item()} accounts"
+            f"Loaded {transaction_df.select(pl.len()).item()} transactions from {account_df.select(pl.len()).item()} accounts"
         )
 
     account_df = account_df.with_columns(
@@ -127,13 +128,12 @@ def load_data_from_up_bank(limit=None):
     transaction_df.write_parquet(file=cfg.TRANSACTIONS_FILEPATH)
 
 
-def load_accounts_table() -> pl.DataFrame:
-    return pl.read_parquet(cfg.ACCOUNTS_FILEPATH)
+def load_data_from_gsheets():
+    sheets_df = pl.DataFrame(gd.get_sheet(cfg.BALANCE_SHEET_ID, cfg.BALANCE_RANGE))
 
-
-def load_transactions_table() -> pl.DataFrame:
-    return pl.read_parquet(cfg.TRANSACTIONS_FILEPATH)
+    sheets_df.write_parquet(file=cfg.BALANCE_FILEPATH)
 
 
 if __name__ == "__main__":
     load_data_from_up_bank()
+    load_data_from_gsheets()
