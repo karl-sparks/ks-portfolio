@@ -44,7 +44,6 @@ def get_gservice(service_type: str) -> Resource:
         service = build(
             service_type, "v3" if service_type == "drive" else "v4", credentials=creds
         )
-        print(f"Successfully connected to drive")
     except HttpError as error:
         # TODO(developer) - Handle errors from drive API.
         print(f"An error occurred: {error}")
