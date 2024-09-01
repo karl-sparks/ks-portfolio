@@ -25,7 +25,7 @@ def load_data_from_up_bank(limit=None):
     if check_file_update(cfg.ACCOUNTS_FILEPATH) and check_file_update(
         cfg.TRANSACTIONS_FILEPATH
     ):
-        print("Data already exists")
+        print("Up Bank data already exists; skipping extraction from Up API")
         return
 
     print("Reloading from Up Bank API")
@@ -33,6 +33,9 @@ def load_data_from_up_bank(limit=None):
     load_dotenv()
 
     # implicitly use the environment variable UP_TOKEN
+    if "UP_TOKEN" not in os.environ:
+        raise PermissionError("Can not find UP_TOKEN; please add UP_TOKEN to a dotenv file.")
+    
     client = Client()
     accounts = client.accounts()
 

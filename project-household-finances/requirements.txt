@@ -1,6 +1,7 @@
 up-bank-api
 python-dotenv
 polars
+pydantic
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib

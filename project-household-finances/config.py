@@ -1,16 +1,17 @@
 DEFAULT_TIMEZONE = "Australia/Sydney"
+DATA_FOLDER = "/workspaces/ks-portfolio/project-household-finances/data"
 ACCOUNTS_FILEPATH = (
-    "/workspaces/ks-portfolio/project-household-finances/data/accounts.parquet"
+    f"{DATA_FOLDER}/accounts.parquet"
 )
 TRANSACTIONS_FILEPATH = (
-    "/workspaces/ks-portfolio/project-household-finances/data/transactions.parquet"
+    f"{DATA_FOLDER}/transactions.parquet"
 )
 BALANCE_FILEPATH = (
-    "/workspaces/ks-portfolio/project-household-finances/data/balance_data.parquet"
+    f"{DATA_FOLDER}/balance_data.parquet"
 )
-CBA_FILEPATH = "/workspaces/ks-portfolio/project-household-finances/data/cba_transaction_data.parquet"
+CBA_FILEPATH = f"{DATA_FOLDER}/cba_transaction_data.parquet"
 CBA_CSV_FILEPATH = (
-    "/workspaces/ks-portfolio/project-household-finances/data/CBA_transaction_data.csv"
+    f"{DATA_FOLDER}/CBA_transaction_data.csv"
 )
 CBA_COLUMNS = ["DATE", "AMOUNT", "DESCRIPTION", "BALANCE"]
 

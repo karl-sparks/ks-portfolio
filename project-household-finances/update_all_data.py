@@ -3,8 +3,15 @@ import google_drive as gd
 import cba_data as cd
 import config as cfg
 
+import os
+
+def validate_pre_data_extract():
+    if not os.path.exists(cfg.DATA_FOLDER):
+        os.makedirs(cfg.DATA_FOLDER)
 
 def main():
+    validate_pre_data_extract()
+    
     ld.load_data_from_up_bank()
     ld.load_data_from_gsheets()
     cd.process_cba_transactions(
