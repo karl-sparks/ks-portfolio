@@ -10,3 +10,4 @@ project-household-finances/credentials.json
 project-household-finances/token.json
 project-household-finances/*.ipynb
 *.env
+project-household-finances/secrets.json
